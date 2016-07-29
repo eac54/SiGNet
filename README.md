@@ -6,4 +6,5 @@ SiGNet is a tool for simulating biological data for a signalling network of know
 This repository contains the source code for the app.
 
 www.signet.icr.ac.uk
+
 http://apps.cytoscape.org/apps/signetapp
