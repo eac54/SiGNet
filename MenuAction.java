@@ -116,6 +116,11 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 		//Adds "Include decay function?" label and button
 		final JCheckBox buttonc = new JCheckBox("Include decay function?", false);
 		
+		// Adds "SiGNet exponent" label and spinner
+		JLabel labelj = new JLabel("SiGNet exponent:");
+		SpinnerModel model6 = new SpinnerNumberModel(0.15, 0.01, 1.00, 0.01);
+		final JSpinner spinner6 = new JSpinner(model6);
+		
 				
 		// Get properties of the current network displayed
 		final CyNetwork network = adapter.getCyApplicationManager().getCurrentNetwork();
@@ -160,7 +165,8 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 								.addComponent(labeld)
 								.addComponent(labeli)
 								.addComponent(labelg)
-								.addComponent(labelh))
+								.addComponent(labelh)
+								.addComponent(labelj))
 								.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
 										.addComponent(spinner1)
 										.addComponent(spinner2)
@@ -172,6 +178,7 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 										.addComponent(spinner5)
 										.addComponent(buttonb)
 										.addComponent(buttonc)
+										.addComponent(spinner6)
 										.addComponent(buttonx))
 						);
 				layout.setVerticalGroup(layout.createSequentialGroup()
@@ -201,7 +208,10 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 								.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
 												.addComponent(buttonb))
 								.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-												.addComponent(buttonc))		
+												.addComponent(buttonc))
+								.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
+												.addComponent(labelj)
+												.addComponent(spinner6))				
 										.addGroup(layout.createParallelGroup(GroupLayout.Alignment.LEADING)
 												.addComponent(buttonx))
 						);
@@ -222,6 +232,7 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 			private Object vmfFactoryC;
 
 			//When button x is pressed, do the following:
+			@SuppressWarnings("unchecked")
 			public void actionPerformed(ActionEvent e)
 			{
 
@@ -252,11 +263,11 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 				int activetimepoint = (Integer) spinner5.getValue();
 				List activeselected = list2.getSelectedValuesList();
 				Object perminhib = buttona.getSelectedObjects();
-				System.out.println("Perm inhib " + perminhib);
+				//System.out.println("Perm inhib " + perminhib);
 				Object permactiv = buttonb.getSelectedObjects();
-				System.out.println("Perm activ " + permactiv);
+				//System.out.println("Perm activ " + permactiv);
 				Object decay = buttonc.isSelected();
-				System.out.println("Decay function " + decay);
+				//System.out.println("Decay function " + decay);
 		
 				if ((selected.isEmpty()==false) && (inhibitimepoint>timepoint)){
 					JFrame edgeframe = new JFrame();
@@ -357,8 +368,8 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 				DecimalFormat df = new DecimalFormat("#.####");
 				
 				// get the nodes selected by the user for inhibition
-				System.out.println(selected);
-				System.out.println(activeselected);
+				//System.out.println(selected);
+				//System.out.println(activeselected);
 				
 				for(int t=1; t<timepoint+1; t++){
 					
@@ -383,6 +394,13 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 						
 								// get the name of the node
 								String nodename = network.getRow(node).get("name", String.class);
+								Double nodebaseline = network.getRow(node).get("Baseline value", Double.class);
+								if (nodebaseline == null){
+									nodebaseline = -100.0;
+								}
+								//System.out.println(nodename + " = " + nodebaseline);
+								
+								
 								
 								if (selected.contains(nodename) && perminhib!=null){
 									nodevalue = Math.random() * 5;
@@ -403,21 +421,21 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 									else if (t==inhibitimepoint && perminhib==null){
 										// if the node is in the selected list, initiate with a lower number
 										//initialise values with random numbers between 0 and 5
-										System.out.println("Here");
+										//System.out.println("Here");
 										nodevalue = (Math.random() * 5);
-										System.out.println("There");
+										//System.out.println("There");
 										
 									}
 									else if (t==inhibitimepoint+1 && perminhib==null){
 										//initialise values with random numbers between 25 and 30
 										nodevalue = 22.5+ (Math.random() * 5);
-										System.out.println("Plus 1");
+										//System.out.println("Plus 1");
 										
 									}
 									else if (t==inhibitimepoint+2 && perminhib==null){
 										//initialise values with random numbers between 25 and 30
 										nodevalue =  50+ (Math.random() * 5);
-										System.out.println("Plus 2");
+										//System.out.println("Plus 2");
 										
 									}
 									
@@ -472,8 +490,15 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 								
 								else {
 									if (t==1){
+										if (nodebaseline==-100){
+											nodevalue = 50 + Math.random();
+											System.out.println(node + "initial value = " + nodevalue);
+										}
 										//initialise values with 50
-										nodevalue = 50 + Math.random();
+										else{
+											nodevalue = nodebaseline;
+											System.out.println(node + "initial value = " + nodevalue);
+										}
 										//System.out.println("initial value = " + network.getRow(node).get("SiGNet value repeat " + i + " timepoint " + (t), Double.class));
 									}
 									else {
@@ -582,18 +607,20 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 								//Define the signmoidal signal-response curve
 								//Signal-response relationship is based on the sigmoid function
 								//X = net input into node= signal. Can be negative
-								
+								Double exponent = (Double)spinner6.getValue();
+								//System.out.println("exponent= " + exponent);
+							
 								//Plot of X and Y will be a sigmoidal curve with highest rate of change at (0,0)
 								if ((((numberOfActivatingEdges>0) || (numberOfInhibitoryEdges>0))&&(decay.equals(false))) || (decay.equals(true)&&(t<0.5*timepoint)) ){
 									double X = ( numberOfActivatingEdges - numberOfInhibitoryEdges );
-									double Y = ((100/(1+Math.exp(-X*0.15)))-50);
+									double Y = ((100/(1+Math.exp(-X*exponent)))-50);
 									nodevalue = nodevalue + Y+ (Math.random());						
 									//System.out.println("No decay here!");	
 								}
 								
 								if ( (decay.equals(true)&&(t>=0.5*timepoint)) ){
 									double X = Math.random() * 5;
-									double Y = ((100/(1+Math.exp(X*0.15)))-50);
+									double Y = ((100/(1+Math.exp(X*exponent)))-50);
 									nodevalue = nodevalue + Y;					
 									//System.out.println("There's decay!");	
 								}
@@ -669,7 +696,6 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 						 
 				}
 				
-			
 				
 				
 
@@ -682,21 +708,22 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 				  VisualMappingFunctionFactory vmfFactoryD = adapter.getVisualMappingFunctionDiscreteFactory(); 
 				  VisualMappingFunctionFactory vmfFactoryP = adapter.getVisualMappingFunctionPassthroughFactory(); 
 				  
+				  
 				  String signetVizmapName = "SiGNet visual style";
 				  VisualStyle vs = null;
 				  for(VisualStyle visualstyle : vmmServiceRef.getAllVisualStyles()) {
 						if(signetVizmapName.equals(visualstyle.getTitle()))
 							vs = visualstyle;
 					}
+				  
 
 					if (vs == null) {
-						vs = visualStyleFactoryServiceRef.createVisualStyle("SiGNet visual style");
-					  
+						vs = visualStyleFactoryServiceRef.createVisualStyle("SiGNet visual style"); 
 					// Set node color map to attribute "SiGNet value average timepoint 1"
-					  ContinuousMapping<Double, Paint> mapping = (ContinuousMapping) vmfFactoryC.createVisualMappingFunction("SiGNet value average timepoint 1", Double.class, BasicVisualLexicon.NODE_FILL_COLOR);
-					  PassthroughMapping nodeLabel = 	(PassthroughMapping) vmfFactoryP.createVisualMappingFunction("name", String.class,BasicVisualLexicon.NODE_LABEL);
-					  DiscreteMapping edgeArrow = 	(DiscreteMapping) vmfFactoryD.createVisualMappingFunction("interaction",String.class, BasicVisualLexicon.EDGE_TARGET_ARROW_SHAPE);
-					  DiscreteMapping<String, Paint> edgeColour =  (DiscreteMapping) vmfFactoryD.createVisualMappingFunction("interaction", String.class, BasicVisualLexicon.EDGE_STROKE_UNSELECTED_PAINT); 
+					ContinuousMapping<Double, Paint> mapping = (ContinuousMapping<Double, Paint>) vmfFactoryC.createVisualMappingFunction("SiGNet value average timepoint 1", Double.class, BasicVisualLexicon.NODE_FILL_COLOR);
+					PassthroughMapping nodeLabel = 	(PassthroughMapping) vmfFactoryP.createVisualMappingFunction("name", String.class,BasicVisualLexicon.NODE_LABEL);
+					DiscreteMapping edgeArrow = 	(DiscreteMapping) vmfFactoryD.createVisualMappingFunction("interaction",String.class, BasicVisualLexicon.EDGE_TARGET_ARROW_SHAPE);
+					DiscreteMapping<String, Paint> edgeColour =  (DiscreteMapping) vmfFactoryD.createVisualMappingFunction("interaction", String.class, BasicVisualLexicon.EDGE_STROKE_UNSELECTED_PAINT); 
 					  
 					  // Define the points
 					  Double val1 = 0d;
@@ -710,6 +737,7 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 					  
 					  Double val4 = 100d;
 					  BoundaryRangeValues<Paint> brv4 = new BoundaryRangeValues<Paint>(Color.RED, Color.RED, Color.RED);
+					  
 					  
 					  edgeArrow.putMapValue("pp", ArrowShapeVisualProperty.DIAMOND);
 					  edgeArrow.putMapValue("activates", ArrowShapeVisualProperty.DELTA);
@@ -728,8 +756,10 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 					  edgeColour.putMapValue("strongly inhibits", Color.BLUE); 
 					  edgeColour.putMapValue("inhibits", Color.BLUE); 
 					  edgeColour.putMapValue("binds", Color.BLACK);
-							   
-					  DiscreteMapping<String, Double> edgeThickness = 
+					
+					  
+					  @SuppressWarnings("rawtypes")
+					DiscreteMapping<String, Double> edgeThickness = 
 					 (DiscreteMapping) vmfFactoryD.createVisualMappingFunction("interaction", String.class, BasicVisualLexicon.EDGE_WIDTH); 
 					  Double defaultThickness = 2d;
 					  edgeThickness.putMapValue("activates", defaultThickness); 
@@ -753,9 +783,10 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 					  vs.addVisualMappingFunction(edgeArrow); 
 					  vs.addVisualMappingFunction(edgeThickness); 
 					  
-					  
+					 
 					  // Add the new style to the VisualMappingManager
 					  vmmServiceRef.addVisualStyle(vs);
+					  
 	
 					}
 					  // Apply the visual style to a NetwokView
@@ -771,6 +802,8 @@ public class MenuAction extends AbstractCyAction implements ActionListener {
 		                               algor = alMan.getDefaultLayout();
 
 		               }
+		               
+		              
 
 		               TaskIterator itr = algor.createTaskIterator(myNetworkView,algor.createLayoutContext(),CyLayoutAlgorithm.ALL_NODE_VIEWS, null);
 
